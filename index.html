@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Seismograph Simulator</title>
+    <style>
+        :root {
+            --bg: #0f1724;
+            --panel: #111827;
+            --accent: #22c1c3;
+            --muted: #94a3b8;
+            --glass: rgba(255, 255, 255, 0.05);
+            --card: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+            --shadow: 0 6px 18px rgba(2, 6, 23, 0.6);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            background: radial-gradient(circle at 10% 10%, rgba(34, 193, 195, 0.1), transparent 20%),
+                radial-gradient(circle at 80% 90%, rgba(0, 150, 255, 0.06), transparent 30%),
+                linear-gradient(180deg, #041021 0%, var(--bg) 100%);
+            color: #e6eef6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 28px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 1100px;
+            background: var(--card);
+            border-radius: 14px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            min-height: 520px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        .left {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        canvas {
+            background: linear-gradient(180deg, rgba(2, 6, 23, 0.6), rgba(2, 6, 23, 0.8));
+            border-radius: 8px;
+            width: 100%;
+            height: 100%;
+            display: block;
+            box-shadow: 0 0 20px rgba(34, 193, 195, 0.15);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        canvas:hover {
+            transform: scale(1.01);
+        }
+
+        .canvas-wrap {
+            flex: 1;
+            min-height: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .right {
+            padding: 18px;
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .card {
+            background: var(--glass);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: inset 0 0 10px rgba(34, 193, 195, 0.05);
+            animation: slideUp 0.6s ease both;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: 0;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: linear-gradient(180deg, #1f2937, #111827);
+            color: #e6eef6;
+            font-weight: 600;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 0 6px rgba(34, 193, 195, 0.15);
+        }
+
+        button:hover {
+            background: linear-gradient(180deg, #22c1c3, #0ea5a4);
+            transform: translateY(-2px);
+            box-shadow: 0 0 12px rgba(34, 193, 195, 0.6);
+        }
+
+        button.ghost {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        label {
+            font-size: 13px;
+            color: var(--muted);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            background: var(--accent);
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+        }
+
+        .meter {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .meter>i {
+            display: block;
+            height: 100%;
+            width: 50%;
+            background: linear-gradient(90deg, var(--accent), #0ea5a4);
+            transition: width 0.2s;
+        }
+
+        .small {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        footer.small {
+            text-align: center;
+            padding: 8px 0;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.97);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app" role="application" aria-label="Seismograph simulator">
+        <div class="left">
+            <div>
+                <h2 style="margin:0">Seismograph Simulator</h2>
+                <div class="small muted">Canvas-based real-time waveform with quake simulation.</div>
+            </div>
+            <div class="canvas-wrap card" style="padding:12px;">
+                <canvas id="seismo" width="780" height="360"></canvas>
+                <div class="legend">
+                    <div class="small muted">Time →</div>
+                    <div class="small muted">Amplitude</div>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:space-between">
+                <div class="small muted">Tip: press "Simulate Quake"</div>
+                <div class="small muted">Rendering: <span id="fps">--</span> FPS</div>
+            </div>
+        </div>
+
+        <aside class="right">
+            <div class="card">
+                <label>Sensitivity <span class="muted" id="sensVal">1.0</span></label>
+                <input id="sensitivity" type="range" min="0.2" max="4.0" step="0.01" value="1.0">
+                <label>Noise <span class="muted" id="noiseVal">0.6</span></label>
+                <input id="noise" type="range" min="0" max="2.0" step="0.01" value="0.6">
+                <label>Speed <span class="muted" id="speedVal">1.0</span></label>
+                <input id="speed" type="range" min="0.2" max="3.0" step="0.01" value="1.0">
+            </div>
+
+            <div class="card">
+                <div class="controls">
+                    <button id="startBtn">Start</button>
+                    <button id="stopBtn" class="ghost">Stop</button>
+                    <button id="quakeBtn">Simulate Quake</button>
+                    <button id="clearBtn" class="ghost">Clear</button>
+                </div>
+                <div class="small muted">Last quake magnitude: <strong id="lastQuake">none</strong></div>
+            </div>
+
+            <div class="card">
+                <div class="small muted">Output amplitude</div>
+                <div class="meter"><i id="ampBar"></i></div>
+            </div>
+
+            <!-- TIME + LOCATION CARD -->
+            <div class="card">
+                <div class="small muted">Local Time</div>
+                <div id="timeDisplay" style="font-size:14px;font-weight:600;">--:--:--</div>
+                <div class="small muted">Location</div>
+                <div id="locationDisplay" style="font-size:13px;">Fetching...</div>
+            </div>
+
+            <footer class="small muted">Author: SeismoJS • Demo</footer>
+        </aside>
+    </div>
+
+    <script>
+        // Time + Location
+        (function () {
+            const timeEl = document.getElementById('timeDisplay');
+            const locEl = document.getElementById('locationDisplay');
+            setInterval(() => {
+                const now = new Date();
+                timeEl.textContent = now.toLocaleTimeString();
+            }, 1000);
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const { latitude, longitude } = pos.coords;
+                    locEl.textContent = `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`;
+                }, () => locEl.textContent = "Location denied");
+            } else {
+                locEl.textContent = "Geolocation not supported";
+            }
+        })();
+    </script>
+
+    <script>
+        // Seismograph Simulator
+        (function () {
+            const canvas = document.getElementById('seismo');
+            const ctx = canvas.getContext('2d', { alpha: false });
+            const width = canvas.width, height = canvas.height;
+
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const quakeBtn = document.getElementById('quakeBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const sens = document.getElementById('sensitivity');
+            const noise = document.getElementById('noise');
+            const speed = document.getElementById('speed');
+            const sensVal = document.getElementById('sensVal');
+            const noiseVal = document.getElementById('noiseVal');
+            const speedVal = document.getElementById('speedVal');
+            const lastQuake = document.getElementById('lastQuake');
+            const ampBar = document.getElementById('ampBar');
+            const fpsEl = document.getElementById('fps');
+
+            let running = false, animationId = null, lastTime = performance.now();
+            let columns = new Float32Array(width), columnIndex = 0;
+            let sensitivity = parseFloat(sens.value), noiseLevel = parseFloat(noise.value), speedFactor = parseFloat(speed.value);
+            let quakeState = null;
+            let fpsCounter = { last: performance.now(), frames: 0 };
+            for (let i = 0; i < columns.length; i++) columns[i] = 0;
+            let smoothValue = 0;
+
+            function drawBackground() {
+                ctx.fillStyle = '#041827';
+                ctx.fillRect(0, 0, width, height);
+                ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+                ctx.beginPath(); ctx.moveTo(0, height / 2 + 0.5); ctx.lineTo(width, height / 2 + 0.5); ctx.stroke();
+            }
+
+            function baseNoise(dt) {
+                const step = (Math.random() - 0.5) * 0.12 * dt;
+                smoothValue += step; smoothValue *= 0.98; return smoothValue;
+            }
+
+            function triggerQuake(magnitude = 1.5, duration = 2200) {
+                quakeState = { start: performance.now(), duration, magnitude };
+                lastQuake.textContent = magnitude.toFixed(2) + ' (mag)';
+            }
+
+            function generateSample(dt) {
+                const ambient = baseNoise(dt) * noiseLevel;
+                const t = performance.now() / 1000;
+                const hf = Math.sin(t * 40 * speedFactor) * 0.02 + Math.sin(t * 80 * speedFactor) * 0.008;
+                let quakeComponent = 0;
+                if (quakeState) {
+                    const now = performance.now(), elapsed = now - quakeState.start;
+                    if (elapsed > quakeState.duration) { quakeState = null; }
+                    else {
+                        const attack = Math.min(0.08, elapsed / quakeState.duration);
+                        const decay = Math.exp(-3 * (elapsed / quakeState.duration));
+                        const envelope = Math.min(1, attack * 1.6) * decay;
+                        quakeComponent = envelope * quakeState.magnitude *
+                            (Math.sin(t * 18) * 0.6 + Math.sin(t * 36) * 0.25 + Math.sin(t * 60) * 0.15);
+                    }
+                }
+                return Math.max(-1, Math.min(1, (ambient + hf + quakeComponent) * sensitivity));
+            }
+
+            function renderTrace() {
+                const imageData = ctx.getImageData(1, 0, width - 1, height);
+                ctx.putImageData(imageData, 0, 0);
+                ctx.fillStyle = 'rgba(4,24,39,0.7)'; ctx.fillRect(width - 1, 0, 1, height);
+                const idx = (columnIndex - 1 + columns.length) % columns.length, amp = columns[idx];
+                const y = Math.round(height / 2 - amp * (height * 0.42));
+                ctx.fillStyle = 'rgba(34,193,195,0.95)'; ctx.fillRect(width - 1, y, 1, 1);
+                ctx.fillStyle = 'rgba(34,193,195,0.18)'; ctx.fillRect(width - 1, y - 1, 1, 3);
+            }
+
+            function loop(now) {
+                const dt = Math.min(60, now - lastTime) / 16.6667;
+                lastTime = now;
+                for (let s = 0; s < Math.max(1, Math.round(speedFactor)); s++) {
+                    columns[columnIndex] = generateSample(dt);
+                    columnIndex = (columnIndex + 1) % columns.length;
+                }
+                renderTrace();
+                const ampVal = Math.abs(columns[(columnIndex - 1 + columns.length) % columns.length]);
+                ampBar.style.width = Math.min(1, ampVal) * 100 + '%';
+                fpsCounter.frames++;
+                if (now - fpsCounter.last >= 500) {
+                    fpsEl.textContent = Math.round((fpsCounter.frames * 1000) / (now - fpsCounter.last));
+                    fpsCounter.last = now; fpsCounter.frames = 0;
+                }
+                animationId = requestAnimationFrame(loop);
+            }
+
+            function start() { if (!running) { running = true; lastTime = performance.now(); fpsCounter = { last: performance.now(), frames: 0 }; animationId = requestAnimationFrame(loop); } }
+            function stop() { if (running) { running = false; cancelAnimationFrame(animationId); } }
+            function clear() { for (let i = 0; i < columns.length; i++) columns[i] = 0; drawBackground(); }
+
+            startBtn.onclick = start; stopBtn.onclick = stop; clearBtn.onclick = clear;
+            quakeBtn.onclick = () => triggerQuake(0.6 + Math.random() * 2.4, 1200 + Math.random() * 2600);
+            sens.oninput = e => { sensitivity = +e.target.value; sensVal.textContent = sensitivity.toFixed(2); };
+            noise.oninput = e => { noiseLevel = +e.target.value; noiseVal.textContent = noiseLevel.toFixed(2); };
+            speed.oninput = e => { speedFactor = +e.target.value; speedVal.textContent = speedFactor.toFixed(2); };
+
+            drawBackground(); start();
+        })();
+    </script>
+</body>
+
+</html>
